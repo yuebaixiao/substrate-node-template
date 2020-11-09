@@ -266,7 +266,8 @@ pub mod migration {
 		type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
 
 		decl_storage! {
-			trait Store for Module<T: Trait> as MyNicks {
+			// We need to use the old name of the storage to access the data to migrate.
+			trait Store for Module<T: Trait> as Nicks {
 				pub NameOf: map hasher(twox_64_concat) T::AccountId => Option<(Vec<u8>, BalanceOf<T>)>;
 			}
 		}
@@ -281,17 +282,22 @@ pub mod migration {
 		// Storage migrations should use storage versions for safety.
 		if PalletVersion::get() == StorageVersion::V1Bytes {
 			frame_support::debug::info!(" >>> Updating storage...");
+			let mut count: u64 = 0;
 
-			// let acctId = T::AccountId::decode(&mut &hex_literal::hex!["d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"][..]).unwrap();
-			// let old = deprecated::NameOf::get(&acctId).unwrap_or_default();
-			// NameOf::insert(acctId, (Nickname {first: old.0, last: None }, old.1));
+			// We remove the nicks from the old storage and insert into the new storage.
+			for (key, (nick, deposit)) in deprecated::NameOf::<T>::drain() {
+				NameOf::<T>::insert(key, (Nickname { first: nick, last: None }, deposit));
+				count += 1;
+			}
 
 			// Update storage version.
 			PalletVersion::put(StorageVersion::V2Struct);
-			frame_support::debug::info!(" <<< Storage updated!");
+			frame_support::debug::info!(" <<< Storage updated! (migrated {} keys)", count);
 
+			// We do two storage reads and writes for every nick plus the version.
+			let ops = count.saturating_mul(2).saturating_add(1);
 			// Return the weight consumed by the migration.
-			T::DbWeight::get().reads_writes(2, 3)
+			T::DbWeight::get().reads_writes(ops, ops)
 		} else {
 			frame_support::debug::info!(" >>> Unused migration!");
 			0
@@ -459,6 +465,24 @@ mod tests {
 			assert_ok!(Nicks::set_name(Origin::signed(1), b"Dave".to_vec(), None));
 			assert_noop!(Nicks::kill_name(Origin::signed(2), 1), BadOrigin);
 			assert_noop!(Nicks::force_name(Origin::signed(2), 1, b"Whatever".to_vec(), None), BadOrigin);
+		});
+	}
+
+	#[test]
+	fn migration_should_work() {
+		new_test_ext().execute_with(|| {
+			use migration::deprecated;
+			let deposit = 42;
+			deprecated::NameOf::<Test>::insert(1, (b"Alice".to_vec(), deposit));
+			deprecated::NameOf::<Test>::insert(2, (b"Bob".to_vec(), deposit));
+			deprecated::NameOf::<Test>::insert(3, (b"Charlie".to_vec(), deposit));
+			deprecated::NameOf::<Test>::insert(4, (b"Dave".to_vec(), deposit));
+
+			migration::migrate_to_v2::<Test>();
+
+			assert_eq!(PalletVersion::get(), StorageVersion::V2Struct);
+			assert_eq!(NameOf::<Test>::get(1).unwrap(), (Nickname { first: b"Alice".to_vec(), last: None }, deposit));
+			assert_eq!(NameOf::<Test>::get(4).unwrap(), (Nickname { first: b"Dave".to_vec(), last: None }, deposit));
 		});
 	}
 }
