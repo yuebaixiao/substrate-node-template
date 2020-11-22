@@ -261,9 +261,15 @@ impl pallet_sudo::Trait for Runtime {
 	type Call = Call;
 }
 
+impl pallet_origin::Trait for Runtime {
+	type Origin = Origin;
+	type Call = Call;
+}
+
 /// Configure the template pallet in pallets/template.
 impl pallet_template::Trait for Runtime {
 	type Event = Event;
+	type DumboOrigin = pallet_origin::EnsureDumbo;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -282,7 +288,8 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// Include the custom logic from the template pallet in the runtime.
-		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
+		DumboOrigin: pallet_origin::{Module, Call, Origin},
+		TemplateModule: pallet_template::{Module, Call, Event},
 	}
 );
 

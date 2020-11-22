@@ -3278,6 +3278,7 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
+ "pallet-origin",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
  "pallet-template",
@@ -3536,6 +3537,18 @@ dependencies = [
  "sp-session",
  "sp-staking",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-origin"
+version = "2.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
 ]
 
 [[package]]
