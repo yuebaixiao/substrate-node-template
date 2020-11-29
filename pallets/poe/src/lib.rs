@@ -71,7 +71,6 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = 10_000]
-		//#[weight = 10_000 + T::DbWeight::get().writes(1)]
 		pub fn create_claim(origin, claim::Vec<u8>) => dispatch::DispatchResult {
 			let sender = ensure_signed(origin)?;
 			ensure!(!Proofs::<T>::contains_key(&clain), Error::<T>::ProoofAlreadyExist);
@@ -81,20 +80,20 @@ decl_module! {
 			Ok(())
 		}
 
-		// #[weight = 10_000]
-		// pub fn revoke_claim(origin, claim: Vec<u8>) -> dispatch::DispatchResult {
-		// 	let sender = ensure_signed(origin)?;
-		// 	ensure!(!Proofs::<T>::contains_key(&clain), Error::<T>::ProoofNotExist);
+		#[weight = 10_000]
+		pub fn revoke_claim(origin, claim: Vec<u8>) -> dispatch::DispatchResult {
+			let sender = ensure_signed(origin)?;
+			ensure!(!Proofs::<T>::contains_key(&clain), Error::<T>::ProoofNotExist);
 			
-		// 	let (owner, _block_number) = Proofs::<T>::get(&claim);
+			let (owner, _block_number) = Proofs::<T>::get(&claim);
 
-		// 	ensure!(owner == sender, Error::<T>::NotClaimOwner);
+			ensure!(owner == sender, Error::<T>::NotClaimOwner);
 
-		// 	Proofs::<T>::remove(&claim);
+			Proofs::<T>::remove(&claim);
 
-		// 	Self::deposit_event(RawEvent::ClaimRevoded(sender, claim));
+			Self::deposit_event(RawEvent::ClaimRevoded(sender, claim));
 
-		// 	Ok(())
-		// }
+			Ok(())
+		}
 	}
 }
