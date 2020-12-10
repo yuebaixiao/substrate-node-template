@@ -71,9 +71,9 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = 10_000]
-		pub fn create_claim(origin, claim::Vec<u8>) => dispatch::DispatchResult {
+		pub fn create_claim(origin, claim: Vec<u8>) -> dispatch::DispatchResult {
 			let sender = ensure_signed(origin)?;
-			ensure!(!Proofs::<T>::contains_key(&clain), Error::<T>::ProoofAlreadyExist);
+			ensure!(!Proofs::<T>::contains_key(&claim), Error::<T>::ProoofAlreadyExist);
 			Proofs::<T>::insert(&claim, (sender.clone(), frame_system::Module::<T>::block_number()));
 			Self::deposit_event(RawEvent::ClaimCreated(sender, claim));
 
@@ -83,7 +83,7 @@ decl_module! {
 		#[weight = 10_000]
 		pub fn revoke_claim(origin, claim: Vec<u8>) -> dispatch::DispatchResult {
 			let sender = ensure_signed(origin)?;
-			ensure!(!Proofs::<T>::contains_key(&clain), Error::<T>::ProoofNotExist);
+			ensure!(!Proofs::<T>::contains_key(&claim), Error::<T>::ProoofNotExist);
 			
 			let (owner, _block_number) = Proofs::<T>::get(&claim);
 
