@@ -8,22 +8,21 @@ use frame_support::{
 	decl_module, decl_storage, decl_event, 
 	ensure, decl_error, dispatch, traits::Get};
 use frame_system::ensure_signed;
-
-//use frame_system::Module;
-
-
 use sp_std::prelude::*;
 
-// #[cfg(test)]
-// mod mock;
+#[cfg(test)]
+mod mock;
 
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
 /// Configure the pallet by specifying the parameters and types on which it depends.
 pub trait Trait: frame_system::Trait {
 	/// Because this pallet emits events, it depends on the runtime's definition of an event.
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+
+	/// 配置存证vec的长度上限
+	type ClaimLength: Get<usize>;
 }
 
 // The pallet's runtime storage items.
@@ -53,9 +52,11 @@ decl_event!(
 // Errors inform users that something went wrong.
 decl_error! {
 	pub enum Error for Module<T: Trait> {
-		ProoofAlreadyExist,
+		ProofAlreadyExist,
 		ProoofNotExist,
 		NotClaimOwner,
+		ClaimNotExist,
+		ClaimLengthTooLarge
 	}
 }
 
@@ -73,7 +74,12 @@ decl_module! {
 		#[weight = 10_000]
 		pub fn create_claim(origin, claim: Vec<u8>) -> dispatch::DispatchResult {
 			let sender = ensure_signed(origin)?;
-			ensure!(!Proofs::<T>::contains_key(&claim), Error::<T>::ProoofAlreadyExist);
+
+			// 检测交易存证的长度过大
+			// 保证插入的存证的数据长度小于或者等于ClaimLength
+			ensure!(claim.len() <= T::ClaimLength::get() , Error::<T>::ClaimLengthTooLarge);
+			
+			ensure!(!Proofs::<T>::contains_key(&claim), Error::<T>::ProofAlreadyExist);
 			Proofs::<T>::insert(&claim, (sender.clone(), frame_system::Module::<T>::block_number()));
 			Self::deposit_event(RawEvent::ClaimCreated(sender, claim));
 
@@ -83,8 +89,12 @@ decl_module! {
 		#[weight = 10_000]
 		pub fn revoke_claim(origin, claim: Vec<u8>) -> dispatch::DispatchResult {
 			let sender = ensure_signed(origin)?;
-			ensure!(!Proofs::<T>::contains_key(&claim), Error::<T>::ProoofNotExist);
+			ensure!(Proofs::<T>::contains_key(&claim), Error::<T>::ClaimNotExist);
 			
+			// 检测交易存证的长度过大
+			// 保证插入的存证的数据长度小于或者等于ClaimLength
+			ensure!(claim.len() <= T::ClaimLength::get() , Error::<T>::ClaimLengthTooLarge);
+
 			let (owner, _block_number) = Proofs::<T>::get(&claim);
 
 			ensure!(owner == sender, Error::<T>::NotClaimOwner);
@@ -93,6 +103,20 @@ decl_module! {
 
 			Self::deposit_event(RawEvent::ClaimRevoded(sender, claim));
 
+			Ok(())
+		}
+
+		#[weight = 10_000]
+		pub fn transfer_claim(origin, claim: Vec<u8>, dest: T::AccountId) -> dispatch::DispatchResult {
+			let sender = ensure_signed(origin)?;
+			// 检测交易存证的长度过大
+			// 保证插入的存证的数据长度小于或者等于ClaimLength
+			ensure!(claim.len() <= T::ClaimLength::get() , Error::<T>::ClaimLengthTooLarge);
+			
+			ensure!(Proofs::<T>::contains_key(&claim), Error::<T>::ClaimNotExist);
+			let(owner, _block_number) = Proofs::<T>::get(&claim);
+			ensure!(owner == sender, Error::<T>::NotClaimOwner);
+			Proofs::<T>::insert(&claim, (dest, frame_system::Module::<T>::block_number()));
 			Ok(())
 		}
 	}

@@ -266,8 +266,13 @@ impl pallet_template::Trait for Runtime {
 	type Event = Event;
 }
 
+parameter_types! {
+    pub const ClaimLength: usize = 128;
+}
+
 impl pallet_poe::Trait for Runtime {
 	type Event = Event;
+	type ClaimLength = ClaimLength;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

@@ -49,11 +49,17 @@ impl system::Trait for Test {
 	type SystemWeightInfo = ();
 }
 
-impl Trait for Test {
-	type Event = ();
+parameter_types! {
+	// 设置的存证的长度最大为2
+	pub const ClaimLength : usize = 128;
 }
 
-pub type TemplateModule = Module<Test>;
+impl Trait for Test {
+	type Event = ();
+	type ClaimLength = ClaimLength;
+}
+
+pub type PoeModule = Module<Test>;
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
