@@ -96,8 +96,19 @@ decl_module! {
 		pub fn transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex){
 			let sender = ensure_signed(origin)?;
 			
-			<Kitties<T>>::contains_key(&kitty_id);
+			// 判断kitty_id是否存在，如果不存在就报错
+			ensure!(<Kitties<T>>::contains_key(&kitty_id), <Error<T>>::KittyNotExists);
 
+			// 从map里得到这只猫的owner
+			let owner = <KittyOwners<T>>::get(&kitty_id).unwrap();
+			// 如果sender不是kitty_id这只猫的主人，就报NotKittyOwner
+			ensure!(owner == sender, Error::<T>::NotKittyOwner);
+
+			// 不可以自己转给自己
+			ensure!(to != sender, <Error<T>>::TransferToSelf);
+
+			// 修改kitty_id这只猫的主人，删除原来的主人，添加新的主人
+			<KittyOwners<T>>::remove(kitty_id);
             <KittyOwners<T>>::insert(kitty_id, to.clone());
             // 触发转让的事件
 			Self::deposit_event(RawEvent::Transferred(sender, to, kitty_id));
