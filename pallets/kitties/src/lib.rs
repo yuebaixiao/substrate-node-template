@@ -7,6 +7,12 @@ use sp_io::hashing::blake2_128;
 use frame_system::ensure_signed;
 use sp_runtime::{DispatchError,traits::{AtLeast32Bit,Bounded}};
 
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
+
 //type KittyIndex = u32;
 // 定义一个 kitty 的数据结构
 #[derive(Encode, Decode)]
@@ -59,7 +65,6 @@ decl_storage! {
 		// 保存所有 kitty 的数据，用 KittyIndex 作为健值
         pub Kitties get(fn kitties): map hasher(blake2_128_concat) T::KittyIndex => Option<Kitty>;
         // 保存 kitty 的总数，严格上来说，应该是最大的 Kitty 的健值索引，因为如果支持 kitty 的删除，实现上就不对了。
-		// T::AccountId 就是指第 17 行定义的 trait 的 AccountId 类型，而这边定义的 AccountId 是继承自 frame_system::Trait 里边的 AccountId
         pub KittiesCount get(fn kitties_count): T::KittyIndex;
         // 保存每一只猫归那个拥有者
         pub KittyOwners get(fn kitty_owner): map hasher(blake2_128_concat) T::KittyIndex => Option<T::AccountId>;
@@ -89,7 +94,10 @@ decl_module! {
 
         #[weight = 0]
 		pub fn transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex){
-            let sender = ensure_signed(origin)?;
+			let sender = ensure_signed(origin)?;
+			
+			<Kitties<T>>::contains_key(&kitty_id);
+
             <KittyOwners<T>>::insert(kitty_id, to.clone());
             // 触发转让的事件
 			Self::deposit_event(RawEvent::Transferred(sender, to, kitty_id));

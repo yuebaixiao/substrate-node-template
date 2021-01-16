@@ -270,6 +270,9 @@ impl pallet_template::Trait for Runtime {
 /// Configure the kitties pallet in pallets/kitties.
 impl pallet_kitties::Trait for Runtime {
 	type Event = Event;
+	type Randomness = RandomnessCollectiveFlip;
+	type KittyIndex = u32;
+	//type Currency = Balances;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
