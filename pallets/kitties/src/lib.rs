@@ -59,8 +59,6 @@ decl_error! {
 
 // 定义数据存储
 decl_storage! {
-	// 定义所储存的数据是属于 KittiesModule 的，( 这个需要和 runtime > lib.rss > construct_runtime 部分引用这个 pallet 的名称对应？）
-	// T: Trait 里边的 Trait 就是第17行定义的 Trait
 	trait Store for Module<T: Trait> as Kitties {
 		// 保存所有 kitty 的数据，用 KittyIndex 作为健值
         pub Kitties get(fn kitties): map hasher(blake2_128_concat) T::KittyIndex => Option<Kitty>;
